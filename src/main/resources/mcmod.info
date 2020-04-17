@@ -1,0 +1,16 @@
+[
+{
+  "modid": "taebookmapviewer",
+  "name": "Book and Map viewer",
+  "description": "Hover over books and maps.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["TheAlphaEpsilon"],
+  "credits": "IronException",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
