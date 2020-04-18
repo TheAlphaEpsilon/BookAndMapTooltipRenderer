@@ -2,7 +2,7 @@
 {
   "modid": "taebookmapviewer",
   "name": "Book and Map viewer",
-  "description": "Hover over books and maps.",
+  "description": "Hover over books and maps. Press the key in settings while hovering.",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",

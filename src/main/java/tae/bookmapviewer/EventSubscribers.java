@@ -2,6 +2,8 @@ package tae.bookmapviewer;
 
 import java.awt.Color;
 
+import org.lwjgl.input.Keyboard;
+
 import net.minecraft.block.material.MapColor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -22,12 +24,16 @@ import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.client.event.RenderTooltipEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
+import static tae.bookmapviewer.BookMapViewer.keybind;
+
 public class EventSubscribers {
 
 	/**
 	 * TheAlphaEpsilon
-	 * 17 April 2020
+	 * 18 April 2020
 	 */
+	
+	private static final int backgroundColor = new Color(203, 188, 147).getRGB();
 	
 	private BookRenderer toRender = null;
 	
@@ -36,7 +42,7 @@ public class EventSubscribers {
 	public void onHover(RenderTooltipEvent.Pre event) {
 		Item item = event.getStack().getItem();
 				
-		if(!(Minecraft.getMinecraft().currentScreen instanceof GuiContainer)) {
+		if(!(Minecraft.getMinecraft().currentScreen instanceof GuiContainer) || !Keyboard.isKeyDown(keybind.getKeyCode())) {
 			return;
 		} else if(item != null && (item instanceof ItemMap || item instanceof ItemWrittenBook)) {
 			event.setCanceled(true);
@@ -46,7 +52,7 @@ public class EventSubscribers {
 	//To draw new gui
 	@SubscribeEvent
 	public void drawNewGui(GuiScreenEvent.DrawScreenEvent.Post event) {
-		if(!(Minecraft.getMinecraft().currentScreen instanceof GuiContainer)) {
+		if(!(Minecraft.getMinecraft().currentScreen instanceof GuiContainer) || !Keyboard.isKeyDown(keybind.getKeyCode())) {
 			return;
 		}
 		
@@ -83,6 +89,9 @@ public class EventSubscribers {
 		
 		GlStateManager.scale(1 / scale, 1 / scale, 1 / scale);
 		
+		Gui.drawRect(x - 1, y - 1, x + 129, y + 129, Color.BLACK.getRGB());
+		Gui.drawRect(x, y, x + 128, y + 128, backgroundColor);
+		
 		byte[] colors = map.getMapData(mapStack, Minecraft.getMinecraft().world).colors;
 		
 		for (int i = 0; i < colors.length; ++i) {
@@ -111,7 +120,6 @@ public class EventSubscribers {
 		
 		private static final FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
 		
-		private static final int backgroundColor = new Color(203, 188, 147).getRGB();
 		private static final int outlineColor = new Color(153, 135, 108).getRGB();
 				
 		/**
@@ -299,5 +307,4 @@ public class EventSubscribers {
 		}
 		
 	}
-	
 }
