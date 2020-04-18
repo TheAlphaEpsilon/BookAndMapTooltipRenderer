@@ -35,6 +35,7 @@ public class EventSubscribers {
 	@SubscribeEvent
 	public void onHover(RenderTooltipEvent.Pre event) {
 		Item item = event.getStack().getItem();
+				
 		if(!(Minecraft.getMinecraft().currentScreen instanceof GuiContainer)) {
 			return;
 		} else if(item != null && (item instanceof ItemMap || item instanceof ItemWrittenBook)) {
@@ -99,8 +100,9 @@ public class EventSubscribers {
 		GlStateManager.scale(scale, scale, scale);
 		
 	}
+	
 	//helper
-	private void drawPixel(int x, int y, int color) {
+	private static void drawPixel(int x, int y, int color) {
 		Gui.drawRect(x, y, x+1, y+1, color);
 	}
 	
@@ -109,6 +111,14 @@ public class EventSubscribers {
 		
 		private static final FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
 		
+		private static final int backgroundColor = new Color(203, 188, 147).getRGB();
+		private static final int outlineColor = new Color(153, 135, 108).getRGB();
+				
+		/**
+		 * space between text and metadata
+		 */
+		private static final int metaSpace = 11;
+		
 		private String author;
 		private String title;
 		private String[] pages;
@@ -116,9 +126,12 @@ public class EventSubscribers {
 		private int width;
 		private int padding;
 		private double scale;
+		private Generation gen;
+		private String nbtString;
 		
 		private BookRenderer(ItemStack bookStack, int width, int padding, double scale) {
 			this.nbt = bookStack.getTagCompound();
+			this.nbtString = nbt.toString();
 			author = nbt.getString("author");
 			title = nbt.getString("title");
 			pages = getPageText(nbt);
@@ -126,9 +139,36 @@ public class EventSubscribers {
 			this.width = width;
 			this.padding = padding;
 			
+			if(fontRenderer.getStringWidth(title) > width) {
+				width = fontRenderer.getStringWidth(title);
+			} else if(fontRenderer.getStringWidth("By: " + author) > width) {
+				width = fontRenderer.getStringWidth("By: " + author);
+			}
+			
 			//Auto resize
 			while(height() > this.width * 2) {
 				this.width *= 2;
+			}
+			
+			//Generation
+			if(!nbt.hasKey("generation")) {
+				//if no generation key, assume og
+				gen = Generation.OG;
+			} else {
+				int type = nbt.getInteger("generation");
+				switch(type) {
+				case(0):
+					gen = Generation.OG;
+					break;
+				case(1):
+					gen = Generation.OGCOP;
+					break;
+				case(2):
+					gen = Generation.COPCOP;
+					break;
+				case(3):
+					gen = Generation.TAT;
+				}
 			}
 		}
 		
@@ -136,12 +176,39 @@ public class EventSubscribers {
 		private void draw(int x, int y) {
 			
 			GlStateManager.scale(1D / scale, 1D / scale, 1D / scale);
-			
+						
 			x *= scale;
 			y *= scale;
 			
-			drawRect(x, y - height() - padding * 2, x + width + padding * 2, y, Color.WHITE.getRGB());
+			drawRect(x, y - height() - padding * 2, x + width + padding * 2, y, backgroundColor);
 			
+			//draw tattering using nbt data as pseudorandom
+			for(int i = 0; i < padding * 2 + width; i++) {				
+				int index = 10 * nbtString.charAt(i % nbtString.length());
+				
+				int value1 = (int) (2 * Math.sin(nbtString.charAt(index % nbtString.length())));
+				
+				int value2 = (int) (2 * Math.sin(nbtString.charAt(Math.abs(value1 % nbtString.length()))));
+				
+				drawVerticalLine(x + i, y - height() - padding * 2 - 1, (int) (value1 + y - height() - padding * (7/4f)), outlineColor);
+				drawVerticalLine(x + i, y + 1, (int) (value2 + y - padding * (1/4f)), outlineColor);
+			}
+			
+			for(int i = 0; i < height() + padding * 2; i++) {
+				
+				int index = nbtString.charAt(i % nbtString.length()) ^ i;
+				
+				int value1 = (int) (2 * Math.sin(nbtString.charAt(index % nbtString.length())));
+				
+				int value2 = (int) (2 * Math.sin(nbtString.charAt(Math.abs(value1 % nbtString.length()))));
+				
+				drawHorizontalLine((int) (x + width + padding * (7/4f) + value1), x + width + padding * 2 - 1, y - i - 1, outlineColor);
+				drawHorizontalLine(x, (int) (value2 + x + padding * (1/4f)), y - i - 1, outlineColor);
+				
+			}
+			
+			drawHorizontalLine(x + padding, x + padding + width, y - padding - fontRenderer.FONT_HEIGHT * 2 - metaSpace / 2, Color.BLACK.getRGB());
+
 			drawText(x + padding, y - height() - padding);
 			
 			GlStateManager.scale(scale, scale, scale);
@@ -154,14 +221,19 @@ public class EventSubscribers {
 			fontRenderer.drawString("By: " + author, x + width / 2 - fontRenderer.getStringWidth("By: " + author) / 2, y + fontRenderer.FONT_HEIGHT, 0);
 			
 			fontRenderer.drawSplitString(arrayToString(pages), x, y + fontRenderer.FONT_HEIGHT * 2, width, 0);
-						
+			
+			int textHeight = fontRenderer.getWordWrappedHeight(arrayToString(pages), width);
+			
+			fontRenderer.drawString("Generation: " + gen.toString(), x, y + fontRenderer.FONT_HEIGHT * 2 + textHeight + metaSpace, 0);
+			fontRenderer.drawString("Pages: " + pages.length, x, y + fontRenderer.FONT_HEIGHT * 3 + textHeight + metaSpace, 0);
+									
 		}
 		
 		private int height() {
 			
 			int textHeight = fontRenderer.getWordWrappedHeight(arrayToString(pages), width);
 			
-			return fontRenderer.FONT_HEIGHT * 2 + textHeight;
+			return fontRenderer.FONT_HEIGHT * 4 + textHeight + metaSpace;
 			
 		}
 
@@ -203,6 +275,27 @@ public class EventSubscribers {
 		
 		private boolean isNBTSame(NBTTagCompound other) {
 			return nbt.equals(other);
+		}
+		
+		static enum Generation {
+			OG, OGCOP, COPCOP, TAT;
+			
+			@Override
+			public String toString() {
+				switch(this) {
+				case OG:
+					return "Original";
+				case OGCOP:
+					return "Copy of Original";
+				case COPCOP:
+					return "Copy of a Copy";
+				case TAT:
+					return "Tattered";
+				default:
+					return "ERROR";
+				}
+			}
+			
 		}
 		
 	}
